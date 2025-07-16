@@ -3,6 +3,9 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 import os, requests
 from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = FastAPI()
 
@@ -54,12 +57,17 @@ async def chat(req: ChatRequest):
     return {"reply": reply, "output": output}
 
 def query_local_llm(prompt):
-    response = requests.post("http://localhost:11434/api/generate", json={
-        "model": "llama3",
-        "prompt": prompt,
-        "stream": False
-    })
-    return response.json().get("response", "").strip()
+    llm_url = os.getenv("LLM_SERVICE_URL", "http://localhost:11434")
+    try:
+        response = requests.post(f"{llm_url}/api/generate", json={
+            "model": "llama3",
+            "prompt": prompt,
+            "stream": False
+        }, timeout=30)
+        response.raise_for_status()
+        return response.json().get("response", "").strip()
+    except requests.exceptions.RequestException as e:
+        return f"LLM service unavailable: {str(e)}"
 
 def generate_prompt(user_input, code="", language=""):
     base = """
@@ -80,3 +88,8 @@ Query:
 """
     code_block = f"\n\nCode in {language}:\n```{language}\n{code}\n```" if code else ""
     return base + user_input + code_block
+
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)

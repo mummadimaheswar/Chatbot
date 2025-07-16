@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - LLM_SERVICE_URL=http://ollama:11434
+      - DEBUG=false
+    depends_on:
+      - ollama
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+    # Pull the llama3 model on startup
+    command: >
+      sh -c "ollama serve & sleep 5 && ollama pull llama3 && wait"
+
+volumes:
+  ollama_data:
