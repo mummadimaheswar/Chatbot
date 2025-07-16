@@ -1,7 +1,9 @@
 
 from fastapi import FastAPI
 from pydantic import BaseModel
-import os, requests
+import os
+import logging
+import requests
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
@@ -42,8 +44,13 @@ async def chat(req: ChatRequest):
             "source_code": req.code,
             "stdin": ""
         }
-        response = requests.post(JUDGE0_API, json=payload, headers=JUDGE0_HEADERS)
-        output = response.json().get("stdout", "") or response.json().get("stderr", "Error running code.")
+        try:
+            response = requests.post(JUDGE0_API, json=payload, headers=JUDGE0_HEADERS, timeout=30)
+            response.raise_for_status()
+            output = response.json().get("stdout", "") or response.json().get("stderr", "Error running code.")
+        except Exception as e:
+            logging.exception("Failed to execute code via Judge0")
+            output = f"Error contacting Judge0 API: {e}"
 
     prompt = generate_prompt(req.message, req.code, req.language)
     if output:
@@ -54,12 +61,44 @@ async def chat(req: ChatRequest):
     return {"reply": reply, "output": output}
 
 def query_local_llm(prompt):
-    response = requests.post("http://localhost:11434/api/generate", json={
-        "model": "llama3",
-        "prompt": prompt,
-        "stream": False
-    })
-    return response.json().get("response", "").strip()
+    """Query the local Ollama LLM instance.
+
+    The endpoint URL and model can be overridden via the `LLM_URL` and
+    `LLM_MODEL` environment variables to make the service configurable in
+    different deployment environments.
+    """
+
+    llm_url = os.getenv("LLM_URL", "http://localhost:11434/api/generate")
+    llm_model = os.getenv("LLM_MODEL", "llama3")
+
+    try:
+        response = requests.post(
+            llm_url,
+            json={
+                "model": llm_model,
+                "prompt": prompt,
+                "stream": False,
+            },
+            timeout=60,
+        )
+        response.raise_for_status()
+        return response.json().get("response", "").strip()
+    except Exception as e:
+        logging.exception("Failed to query local LLM")
+        return f"Error contacting local LLM: {e}"
+
+@app.get("/")
+async def health_check():
+    """Simple health-check endpoint useful for monitoring & load-balancers."""
+    return {"status": "ok"}
+
+# Allow running with `python main.py` locally
+if __name__ == "__main__":
+    import uvicorn
+
+    port = int(os.getenv("PORT", 8000))
+    logging.basicConfig(level=logging.INFO)
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)
 
 def generate_prompt(user_input, code="", language=""):
     base = """
