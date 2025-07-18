@@ -1,0 +1,29 @@
+{
+  "intents": [
+    {
+      "tag": "greeting",
+      "patterns": ["Hi", "Hello", "Hey", "Is anyone there?", "Good day"],
+      "responses": ["Hello! How can I assist you today?", "Hi there, how can I help?"]
+    },
+    {
+      "tag": "goodbye",
+      "patterns": ["Bye", "See you later", "Goodbye"],
+      "responses": ["Goodbye! Have a great day.", "See you soon!"]
+    },
+    {
+      "tag": "thanks",
+      "patterns": ["Thanks", "Thank you", "Much appreciated"],
+      "responses": ["You're welcome!", "Happy to help!"]
+    },
+    {
+      "tag": "services",
+      "patterns": ["What services do you offer?", "Tell me about your services", "What can you do?"],
+      "responses": ["We offer web development, mobile app development, and AI solutions."]
+    },
+    {
+      "tag": "contact",
+      "patterns": ["How can I contact support?", "I need help", "Customer support?"],
+      "responses": ["You can contact us at support@example.com."]
+    }
+  ]
+}
