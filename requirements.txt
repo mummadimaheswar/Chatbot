@@ -4,5 +4,4 @@ numpy
 pandas
 tensorflow-cpu
 streamlit
-request
-scikit-learn
+requests
