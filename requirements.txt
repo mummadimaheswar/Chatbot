@@ -1,8 +1,6 @@
 fastapi
-uvicorn
-tensorflow
+uvicorn[standard]
 numpy
 pandas
-streamlit
-requests
-scikit-learn
+tensorflow-cpu
+streamlite
